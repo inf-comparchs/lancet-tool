@@ -191,7 +191,7 @@ func main() {
 	}
 
 	// Run experiment
-	err = c.runExp(expCfg.loadPattern, expCfg.ltRate, expCfg.ciSize)
+	err = c.runExp(expCfg.loadPattern, expCfg.ltRate, expCfg.ciSize, expCfg.outCsv)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
