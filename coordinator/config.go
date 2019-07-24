@@ -55,11 +55,13 @@ type ExperimentConfig struct {
 	ciSize         int
 	nicTS          bool
 	privateKeyPath string
+	outCsv         string
 }
 
 func ParseConfig() (*ServerConfig, *ExperimentConfig, error) {
 	currentUser, _ := user.Current()
 	id_rsa_path := path.Join(currentUser.HomeDir, ".ssh/id_rsa")
+	output_csv_path := path.Join(currentUser.HomeDir, "results/out.csv")
 	var agentPort = flag.Int("agentPort", 5001, "listening port of the agent")
 	var target = flag.String("targetHost", "127.0.0.1:8000", "host:port comma-separated list to run experiment against")
 	var thAgents = flag.String("loadAgents", "", "ip of loading agents separated by commas, e.g. ip1,ip2,...")
@@ -77,6 +79,7 @@ func ParseConfig() (*ServerConfig, *ExperimentConfig, error) {
 	var ciSize = flag.Int("ciSize", 10, "size of 95-confidence interval in us")
 	var nicTS = flag.Bool("nicTS", false, "NIC timestamping for symmetric agents")
 	var privateKey = flag.String("privateKey", id_rsa_path, "location of the (local) private key to deploy the agents. Will find a default if not specified")
+	var outCsv = flag.String("outCsv", output_csv_path, "location to output a (local) file with throughput/latency numbers in a CSV format")
 	var ifName = flag.String("ifName", "enp65s0", "interface name for hardware timestamping")
 	var reqPerConn = flag.Int("reqPerConn", 1, "Number of outstanding requests per TCP connection")
 
@@ -124,6 +127,7 @@ func ParseConfig() (*ServerConfig, *ExperimentConfig, error) {
 	expCfg.ciSize = *ciSize
 	expCfg.nicTS = *nicTS
 	expCfg.privateKeyPath = *privateKey
+	expCfg.outCsv = *outCsv
 
 	return serverCfg, expCfg, nil
 }

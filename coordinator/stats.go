@@ -27,6 +27,8 @@ package main
 import "C"
 import (
 	"fmt"
+	"os"
+	"strings"
 )
 
 func computeStatsThroughput(replies []*C.struct_throughput_reply) *C.struct_throughput_reply {
@@ -45,7 +47,7 @@ func computeStatsThroughput(replies []*C.struct_throughput_reply) *C.struct_thro
 func computeStatsLatency(replies []*C.struct_latency_reply) *C.struct_latency_reply {
 	agg_stats := &C.struct_latency_reply{}
 	for _, r := range replies {
-		printLatencyStats(r)
+		//printLatencyStats(r) FIXME
 		agg_stats.Avg_lat += r.Avg_lat
 		agg_stats.P50_i += r.P50_i
 		agg_stats.P50 += r.P50
@@ -88,22 +90,54 @@ func computeStatsLatency(replies []*C.struct_latency_reply) *C.struct_latency_re
 
 }
 
-func printThroughputStats(stats *C.struct_throughput_reply) {
-	fmt.Println("#ReqCount\tQPS\tRxBw\tTxBw")
-	fmt.Printf("%v\t%v\t%v\t%v\n", stats.Req_count,
-		1e6*float64(stats.Req_count)/float64(stats.Duration),
-		1e6*float64(stats.Rx_bytes)/float64(stats.Duration),
-		1e6*float64(stats.Tx_bytes)/float64(stats.Duration))
+func printThroughputStats(stats *C.struct_throughput_reply, outCsv string) error {
+	f, err := os.OpenFile(outCsv, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("Can't open outCsv file for writing\n")
+	}
+	defer f.Close()
+
+	str := "#ReqCount\tQPS\tRxBw\tTxBw\n"
+	fmt.Println( strings.TrimSuffix(str, "\n") )
+	if _, err := f.WriteString(str); err != nil {
+		return fmt.Errorf("Can't write to outCsv file\n")
+	}
+	str = fmt.Sprintf("%v\t%v\t%v\t%v\n", stats.Req_count,
+	1e6*float64(stats.Req_count)/float64(stats.Duration),
+	1e6*float64(stats.Rx_bytes)/float64(stats.Duration),
+	1e6*float64(stats.Tx_bytes)/float64(stats.Duration))
+	fmt.Printf(str)
+	if _, err := f.WriteString(str); err != nil {
+		return fmt.Errorf("Can't write to outCsv file\n")
+	}
+
+	return nil
 }
 
-func printLatencyStats(stats *C.struct_latency_reply) {
-	fmt.Println("#Avg Lat\t50th\t90th\t95th\t99th")
-	fmt.Printf("%v\t%v(%v, %v)\t%v(%v, %v)\t%v(%v, %v)\t%v(%v, %v)\n",
-		float64(stats.Avg_lat)/1e3,
-		float64(stats.P50)/1e3, float64(stats.P50_i)/1e3, float64(stats.P50_k)/1e3,
-		float64(stats.P90)/1e3, float64(stats.P90_i)/1e3, float64(stats.P90_k)/1e3,
-		float64(stats.P95)/1e3, float64(stats.P95_i)/1e3, float64(stats.P95_k)/1e3,
-		float64(stats.P99)/1e3, float64(stats.P99_i)/1e3, float64(stats.P99_k)/1e3)
+func printLatencyStats(stats *C.struct_latency_reply, outCsv string) error {
+	f, err := os.OpenFile(outCsv, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("Can't open outCsv file for writing\n")
+	}
+	defer f.Close()
+
+	str := "#Avg Lat\t50th\t90th\t95th\t99th\n"
+	fmt.Println( strings.TrimSuffix(str, "\n") )
+	if _, err := f.WriteString(str); err != nil {
+		return fmt.Errorf("Can't write to outCsv file\n")
+	}
+	str = fmt.Sprintf("%v\t%v(%v, %v)\t%v(%v, %v)\t%v(%v, %v)\t%v(%v, %v)\n",
+	float64(stats.Avg_lat)/1e3,
+	float64(stats.P50)/1e3, float64(stats.P50_i)/1e3, float64(stats.P50_k)/1e3,
+	float64(stats.P90)/1e3, float64(stats.P90_i)/1e3, float64(stats.P90_k)/1e3,
+	float64(stats.P95)/1e3, float64(stats.P95_i)/1e3, float64(stats.P95_k)/1e3,
+	float64(stats.P99)/1e3, float64(stats.P99_i)/1e3, float64(stats.P99_k)/1e3)
+	fmt.Printf(str)
+	if _, err := f.WriteString(str); err != nil {
+		return fmt.Errorf("Can't write to outCsv file\n")
+	}
+
+	return nil
 }
 
 func getRPS(stats *C.struct_throughput_reply) float64 {

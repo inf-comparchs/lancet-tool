@@ -75,7 +75,7 @@ func (c *coordinator) load(loadRate, latencyRate int) error {
 	return nil
 }
 
-func (c *coordinator) fixedPattern(loadRate, latencyRate int) error {
+func (c *coordinator) fixedPattern(loadRate, latencyRate int, outCsv string) error {
 	fmt.Printf("Load rate is %v\n", loadRate)
 	fmt.Printf("Latency rate = %v\n", latencyRate)
 	if len(c.symAgents) == 0 && len(c.thAgents) == 0 && len(c.ltAgents) == 0 {
@@ -141,17 +141,23 @@ func (c *coordinator) fixedPattern(loadRate, latencyRate int) error {
 	}
 
 	agg_throughput := computeStatsThroughput(throughputReplies)
-	printThroughputStats(agg_throughput)
+	err = printThroughputStats(agg_throughput, outCsv)
+	if err != nil {
+		return fmt.Errorf("Error printing throughput stats: %v\n", err)
+	}
 
 	if len(c.ltAgents) > 0 || len(c.symAgents) > 0 {
 		aggLatency := computeStatsLatency(latencyReplies)
 		fmt.Println("Aggregate latency")
-		printLatencyStats(aggLatency)
+		err = printLatencyStats(aggLatency, outCsv)
+		if err != nil {
+			return fmt.Errorf("Error printing latency stats: %v\n", err)
+		}
 	}
 	return nil
 }
 
-func (c *coordinator) fixedQualPattern(loadRate, latencyRate int) error {
+func (c *coordinator) fixedQualPattern(loadRate, latencyRate int, outCsv string) error {
 	var err error
 	tryCount := 0
 	expectedRPS := float64(loadRate) + float64(latencyRate)
@@ -277,9 +283,15 @@ func (c *coordinator) fixedQualPattern(loadRate, latencyRate int) error {
 			}
 
 			agg_throughput := computeStatsThroughput(throughputReplies)
-			printThroughputStats(agg_throughput)
+			err = printThroughputStats(agg_throughput, outCsv)
+			if err != nil {
+				return fmt.Errorf("Error printing throughput stats: %v\n", err)
+			}
 			fmt.Println("Aggregate latency")
-			printLatencyStats(agg_lat)
+			err = printLatencyStats(agg_lat, outCsv)
+			if err != nil {
+				return fmt.Errorf("Error printing latency stats: %v\n", err)
+			}
 			if maxTimeReached {
 				return fmt.Errorf("Max time reached\n")
 			}
@@ -294,16 +306,16 @@ func (c *coordinator) fixedQualPattern(loadRate, latencyRate int) error {
 	return fmt.Errorf("Max re-tries or max time reached\n")
 }
 
-func (c *coordinator) stepPattern(startLoad, endLoad, step, latencyRate int, pattern string) error {
+func (c *coordinator) stepPattern(startLoad, endLoad, step, latencyRate int, pattern string, outCsv string) error {
 	fmt.Printf("%v %v %v\n", startLoad, endLoad, step)
 	loadRate := startLoad
 	var err error
 	for loadRate <= endLoad {
 		if pattern == "step" {
 			fmt.Println("call fixed pattern")
-			err = c.fixedPattern(loadRate, latencyRate)
+			err = c.fixedPattern(loadRate, latencyRate, outCsv)
 		} else {
-			err = c.fixedQualPattern(loadRate, latencyRate)
+			err = c.fixedQualPattern(loadRate, latencyRate, outCsv)
 		}
 		if err != nil {
 			fmt.Println(err)
@@ -316,7 +328,7 @@ func (c *coordinator) stepPattern(startLoad, endLoad, step, latencyRate int, pat
 	return nil
 }
 
-func (c *coordinator) runExp(pattern string, latencyRate, ciSize int) error {
+func (c *coordinator) runExp(pattern string, latencyRate, ciSize int, outCsv string) error {
 
 	patternArgs := strings.Split(pattern, ":")
 	c.samples = initialSamples
@@ -346,9 +358,9 @@ func (c *coordinator) runExp(pattern string, latencyRate, ciSize int) error {
 			c.samplingRate = samplingRate
 		}
 		if patternArgs[0] == "fixed" {
-			return c.fixedPattern(loadRate, latencyRate)
+			return c.fixedPattern(loadRate, latencyRate, outCsv)
 		} else {
-			return c.fixedQualPattern(loadRate, latencyRate)
+			return c.fixedQualPattern(loadRate, latencyRate, outCsv)
 		}
 	} else if patternArgs[0] == "step" || patternArgs[0] == "stepQual" {
 		startLoad, err := strconv.Atoi(patternArgs[1])
@@ -377,7 +389,7 @@ func (c *coordinator) runExp(pattern string, latencyRate, ciSize int) error {
 			}
 			c.samplingRate = samplingRate
 		}
-		return c.stepPattern(startLoad, endLoad, step, latencyRate, patternArgs[0])
+		return c.stepPattern(startLoad, endLoad, step, latencyRate, patternArgs[0], outCsv)
 	} else {
 		return fmt.Errorf("Unknown load pattern")
 	}
