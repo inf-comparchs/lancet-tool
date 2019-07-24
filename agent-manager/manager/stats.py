@@ -134,8 +134,8 @@ def aggregate_latency(stats, per_thread_samples):
         all_samples += map(lambda x: x.nsec_latency, s.Samples[:sample_count])
 
     # Uncomment in order to collect samples
-    #with open("/tmp/kogias/lancet-samples", 'w') as f:
-    #    f.write("\n".join(map(str, all_samples)))
+    with open("/tmp/kogias/lancet-samples", 'w') as f:
+        f.write("\n".join(map(str, all_samples)))
 
     print("There are {} samples".format(len(all_samples)))
     all_samples.sort()
