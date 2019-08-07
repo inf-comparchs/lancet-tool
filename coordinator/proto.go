@@ -103,7 +103,7 @@ func collectThroughputResults(agents []*agent) ([]*C.struct_throughput_reply, er
 
 func collectLatencyResults(agents []*agent) ([]*C.struct_latency_reply, error) {
 	result := make([]*C.struct_latency_reply, 0)
-	timeOut := 10000 * time.Millisecond
+	timeOut := 100000 * time.Millisecond
 	aggregate := 0
 	for _, a := range agents {
 		a.conn.SetReadDeadline(time.Now().Add(timeOut))
